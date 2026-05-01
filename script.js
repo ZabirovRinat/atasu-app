@@ -96,9 +96,10 @@ function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    const tableName = val.includes('Defects') ? 'Дефекты' : 'Журнал смен';
-    const url = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tableName)}&fileName=${encodeURIComponent(val)}`;
-    return `<a href="${url}" target="_blank">📷 Фото</a>`;
+    const tn = val.includes('Defects') ? 'Дефекты' : 'Журнал смен';
+    // Важно: путь (val) не кодируем, только имя таблицы
+    const u = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${val}`;
+    return `<a href="${u}" target="_blank">📷 Фото</a>`;
   }
   return val;
 }
@@ -118,7 +119,6 @@ async function loadAllData() {
   renderJournal();
 }
 
-// ==================== ФИЛЬТРАЦИЯ ====================
 function getDateRange() {
   const now = new Date();
   let from, to = new Date();
@@ -172,7 +172,7 @@ function renderJournal() {
       <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
       <td>${j.Аккамуляторная_батарея || ''}</td>
       <td>${hasDefect ? '🔺 Дефекты' : ''}</td>
-    <tr>`;
+     </tr>`;
   }).join('');
 }
 
@@ -193,7 +193,7 @@ window.openJournalCard = async (id) => {
     if (relatedDefects.length) {
       defectsHtml = '<div style="margin-top:12px;"><strong>Зафиксированные дефекты:</strong></div>';
       for (let d of relatedDefects) {
-        defectsHtml += `<div style="padding:8px; background:rgba(239,68,68,0.1); border-radius:8px; margin-top:6px;">⚠️ ${d.Описание} ${parsePhotoValue(d.Фото)}</div>`;
+        defectsHtml += `<div style="padding:8px; background:rgba(239,68,68,0.1); border-radius:8px; margin-top:6px;">⚠️ ${d.Описание}<br>${parsePhotoValue(d.Фото)}</div>`;
       }
     }
     document.getElementById('journalCardContent').innerHTML = `
@@ -211,6 +211,7 @@ window.openJournalCard = async (id) => {
     document.getElementById('journalCardModal').classList.add('open');
   } catch (e) {
     showToast('Ошибка при открытии: ' + e.message);
+    console.error(e);
   }
 };
 
@@ -483,11 +484,13 @@ async function saveShiftFinal() {
           rec[label] = (photoBase64 && photoBase64.length > 10) ? await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`) : '';
         } else {
           const st = shiftData[`status_${id}`];
-          rec[label] = st === 'норме' ? 'В норме' : (st === 'дефект' ? 'Дефект' : '');
+          rec[label] = st === 'дефект' ? 'Дефект' : 'В норме';
         }
       }
     }
     await gasPost('append', 'Журнал смен', rec);
+
+    // Сохраняем дефекты последовательно с ожиданием
     for (let def of defectsArray) {
       const defectId = Math.random().toString(36).substr(2, 8);
       let photoUrl = '';
@@ -501,6 +504,7 @@ async function saveShiftFinal() {
         Фото: photoUrl
       });
     }
+
     showToast(`✅ ${shiftType} сохранена`);
     closeShiftModal();
     shiftData = {};
@@ -508,6 +512,7 @@ async function saveShiftFinal() {
     await loadAllData();
   } catch (e) {
     showToast('Ошибка сохранения: ' + e.message);
+    console.error(e);
   } finally {
     if (saveBtn) {
       saveBtn.disabled = false;
