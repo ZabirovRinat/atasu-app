@@ -1,5 +1,5 @@
 // ==================== КОНФИГУРАЦИЯ ====================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbymCZRkr5i12vox8xfbdMrXileNMLMYAWOg3a69SwASH1wV0Sug620fo0GZXgQ1A2a-8A/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyIqjwPpjcONp4WfG3R8UIaUBsaec7dKMl12hFrP5Nsp1PmXNVGJy11KlSLAq-N8oV1SQ/exec';
 
 let TECH = [], JOURNAL = [], OPERATORS = [], DEFECTS = [];
 let currentUser = null, currentScreen = 'journal';
