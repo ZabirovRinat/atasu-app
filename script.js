@@ -52,7 +52,7 @@ async function gasPost(action, sheet, data, key = null, extra = null) {
   if (extra) Object.assign(payload, extra);
   const res = await fetch(GAS_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain' },   // ← ЕДИНСТВЕННОЕ ИЗМЕНЕНИЕ
     body: JSON.stringify(payload)
   });
   const json = await res.json();
