@@ -4,69 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Atasu Logistics – Журнал механизации</title>
-  <!-- Подключаем стили -->
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 <div id="atasu-app">
   <div id="shell">
-    <!-- Боковая панель -->
     <div id="sidebar">
-      <div class="sb-logo">
-        <div class="sb-lmark">🚛</div>
-        <div>
-          <div class="sb-ltxt">ATASU</div>
-          <div class="sb-lsub">LOGISTICS</div>
-        </div>
-      </div>
+      <div class="sb-logo"><div class="sb-lmark">🚛</div><div><div class="sb-ltxt">ATASU</div><div class="sb-lsub">LOGISTICS</div></div></div>
       <div class="sb-nav" id="sidebarNav"></div>
       <div class="sb-footer">
         <div class="sb-user">
           <div class="sb-avatar" id="userAvatar">А</div>
-          <div>
-            <div id="userName">Загрузка...</div>
-            <div id="userRole"></div>
-          </div>
+          <div><div id="userName">Загрузка...</div><div id="userRole"></div></div>
           <button id="logoutBtn" class="logout-btn">🚪</button>
         </div>
       </div>
     </div>
-
-    <!-- Основная область -->
     <div id="main">
-      <div id="topbar">
-        <div class="tb-title" id="pageTitle">Журнал смен</div>
-        <button class="btn" id="actionBtn">+ Новая смена</button>
-      </div>
+      <div id="topbar"><div class="tb-title" id="pageTitle">Журнал смен</div><button class="btn" id="actionBtn">+ Новая смена</button></div>
       <div id="content">
-        <!-- Журнал смен (активен по умолчанию) -->
         <div class="screen active" id="screen-journal">
           <div class="filter-bar">
-            <div class="filter-group">
-              <button class="filter-btn" data-period="week">Тек. неделя</button>
-              <button class="filter-btn" data-period="prevWeek">Прош. неделя</button>
-              <button class="filter-btn" data-period="month">Месяц</button>
-              <button class="filter-btn" data-period="custom">Период</button>
-            </div>
-            <div id="customPeriod" style="display: none; gap: 8px;">
-              <input type="date" id="dateFrom" class="period-input">
-              <span>—</span>
-              <input type="date" id="dateTo" class="period-input">
-              <button id="applyPeriod" class="btn small">Применить</button>
-            </div>
+            <div class="filter-group"><button class="filter-btn" data-period="week">Тек. неделя</button><button class="filter-btn" data-period="prevWeek">Прош. неделя</button><button class="filter-btn" data-period="month">Месяц</button><button class="filter-btn" data-period="custom">Период</button></div>
+            <div id="customPeriod" style="display:none; gap:8px;"><input type="date" id="dateFrom" class="period-input"><span>—</span><input type="date" id="dateTo" class="period-input"><button id="applyPeriod" class="btn small">Применить</button></div>
           </div>
-          <div class="d-table-wrap">
-            <table id="journalTable">
-              <thead>
-                <tr><th>Дата</th><th>Техника</th><th>Оператор</th><th>Смена</th><th>Моточасы</th><th>Топливо (л)</th><th>АКБ (В)</th><th>Дефекты</th></tr>
-              </thead>
-              <tbody id="journalBody"></tbody>
-            </table>
-          </div>
+          <div class="d-table-wrap"><table id="journalTable"><thead><th>Дата</th><th>Техника</th><th>Оператор</th><th>Смена</th><th>Моточасы</th><th>Топливо (л)</th><th>АКБ (В)</th><th>Дефекты</th></thead><tbody id="journalBody"></tbody></table></div>
         </div>
-
-        <!-- Остальные экраны (заглушки) -->
         <div class="screen" id="screen-tech"><div class="stat-card">Техника (в разработке)</div></div>
         <div class="screen" id="screen-gsm"><div class="stat-card">ГСМ (в разработке)</div></div>
         <div class="screen" id="screen-repair"><div class="stat-card">Ремонты (в разработке)</div></div>
@@ -77,38 +41,11 @@
   <div id="mobile-bnav"></div>
 </div>
 
-<!-- Модальные окна -->
-<div class="overlay" id="shiftModal">
-  <div class="drawer">
-    <div class="drtitle">📋 Приём / Сдача техники<button class="close-modal" onclick="closeShiftModal()">✕</button></div>
-    <div id="shiftStepContent"></div>
-    <div class="modal-buttons">
-      <button id="shiftBackBtn" class="btn btn-outline" style="display: none;">← Назад</button>
-      <button id="shiftNextBtn" class="btn" style="flex:1;">Далее →</button>
-      <button id="shiftSaveBtn" class="btn" style="flex:1; display: none;">✓ Сохранить</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="journalCardModal">
-  <div class="drawer">
-    <div class="drtitle">Детали смены<button class="close-modal" onclick="closeJournalCard()">✕</button></div>
-    <div id="journalCardContent" style="padding: 16px;"></div>
-  </div>
-</div>
-
+<div class="overlay" id="shiftModal"><div class="drawer"><div class="drtitle">📋 Приём / Сдача техники<button class="close-modal" onclick="closeShiftModal()">✕</button></div><div id="shiftStepContent"></div><div class="modal-buttons"><button id="shiftBackBtn" class="btn btn-outline" style="display:none;">← Назад</button><button id="shiftNextBtn" class="btn" style="flex:1;">Далее →</button><button id="shiftSaveBtn" class="btn" style="flex:1; display:none;">✓ Сохранить</button></div></div></div>
+<div class="overlay" id="journalCardModal"><div class="drawer"><div class="drtitle">Детали смены<button class="close-modal" onclick="closeJournalCard()">✕</button></div><div id="journalCardContent" style="padding:16px;"></div></div></div>
 <div id="toast" class="toast"></div>
-<div id="loginOverlay">
-  <div class="login-card">
-    <h2>⚙️ ATASU</h2>
-    <input type="text" id="loginEmail" placeholder="Email / Логин">
-    <input type="password" id="loginPass" placeholder="Пароль">
-    <button id="doLoginBtn" class="btn">Войти</button>
-    <div id="loginError"></div>
-  </div>
-</div>
+<div id="loginOverlay"><div class="login-card"><h2>⚙️ ATASU</h2><input type="text" id="loginEmail" placeholder="Email / Логин"><input type="password" id="loginPass" placeholder="Пароль"><button id="doLoginBtn" class="btn">Войти</button><div id="loginError"></div></div></div>
 
-<!-- Подключаем скрипт -->
 <script src="script.js"></script>
 </body>
 </html>
