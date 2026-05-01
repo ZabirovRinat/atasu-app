@@ -28,7 +28,6 @@ body {
   --sidebar: 260px;
 }
 
-/* Основной контейнер */
 #atasu-app {
   position: fixed;
   top: 0;
@@ -48,7 +47,6 @@ body {
   overflow: hidden;
 }
 
-/* Сайдбар */
 #sidebar {
   width: var(--sidebar);
   flex-shrink: 0;
@@ -167,7 +165,6 @@ body {
   font-size: 16px;
 }
 
-/* Основная область */
 #main {
   flex: 1;
   display: flex;
@@ -233,7 +230,6 @@ body {
   display: block;
 }
 
-/* Карточки и таблицы */
 .stat-card {
   background: var(--bg2);
   border-radius: 16px;
@@ -258,7 +254,8 @@ table {
   border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid var(--b);
@@ -287,7 +284,6 @@ th {
   color: #dc2626;
 }
 
-/* Фильтры */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -338,7 +334,6 @@ th {
   background: #F8FAFC;
 }
 
-/* Модальные окна */
 .overlay {
   position: fixed;
   inset: 0;
@@ -395,8 +390,8 @@ th {
   padding: 16px;
 }
 
-/* Формы */
-.fp, .frow {
+.fp,
+.frow {
   padding: 8px 18px;
 }
 
@@ -409,7 +404,9 @@ th {
   margin-bottom: 6px;
 }
 
-.fi, .fs, .ft {
+.fi,
+.fs,
+.ft {
   width: 100%;
   padding: 10px 14px;
   background: var(--bg3);
@@ -423,7 +420,6 @@ th {
   margin-top: 8px;
 }
 
-/* Тосты */
 .toast {
   position: fixed;
   bottom: 20px;
@@ -443,7 +439,6 @@ th {
   opacity: 1;
 }
 
-/* Логин */
 #loginOverlay {
   position: fixed;
   top: 0;
@@ -479,7 +474,6 @@ th {
   display: none !important;
 }
 
-/* Мобильная навигация */
 #mobile-bnav {
   display: none;
 }
