@@ -6,7 +6,6 @@ let journalPeriod = 'week', customFrom = null, customTo = null;
 let shiftStep = 1, shiftType = 'Прием смены', shiftData = {};
 let defectsArray = [];
 
-// ПРАВИЛЬНЫЕ названия колонок (как в Google Sheets)
 const checklistLabels = {
   oil_motor: 'Уровень моторного масла',
   oil_coolant: 'Уровень охлаждающей жидкости',
@@ -26,7 +25,7 @@ const checklistLabels = {
   fire_ext: 'Наличие огнетушителя и аптечки'
 };
 
-// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
 async function gasGet(sheet) {
   try {
     const url = `${GAS_URL}?sheet=${encodeURIComponent(sheet)}&t=${Date.now()}`;
@@ -36,44 +35,26 @@ async function gasGet(sheet) {
   } catch (e) { return []; }
 }
 
-// ПРАВИЛЬНЫЙ POST с режимом 'no-cors' (без ожидания ответа)
 async function gasPost(action, sheet, data, key = null, extra = null) {
   try {
     const payload = { action, sheet, data };
     if (key) payload.key = key;
     if (extra) Object.assign(payload, extra);
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
+    await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
     return true;
   } catch (e) {
     throw new Error('Network error: ' + e.message);
   }
 }
 
-// Загрузка фото с правильными заголовками
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
   try {
     await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: 'upload_photo',
-        sheet: 'Журнал смен',
-        fileName: fileName,
-        base64: base64,
-        folder: folder
-      })
+      method: 'POST', mode: 'no-cors',
+      body: JSON.stringify({ action: 'upload_photo', sheet: 'Журнал смен', fileName, base64, folder })
     });
     return `/Photos/${folder}/${fileName}`;
-  } catch (e) {
-    console.error(e);
-    return '';
-  }
+  } catch (e) { return ''; }
 }
 
 function showToast(msg, isError = false) {
@@ -86,31 +67,25 @@ function showToast(msg, isError = false) {
 
 function getNowFormatted() {
   const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const year = d.getFullYear(), month = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  const hours = String(d.getHours()).padStart(2,'0'), minutes = String(d.getMinutes()).padStart(2,'0');
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function formatDate(d, withTime = false) {
   if (!d) return '';
   let date = new Date(d);
-  if (isNaN(date)) return d.slice(0, 16);
-  return withTime
-    ? date.toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : date.toISOString().slice(0, 10);
+  if (isNaN(date)) return d.slice(0,16);
+  return withTime ? date.toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : date.toISOString().slice(0,10);
 }
 
-// Исправленная функция показа фото – чистит двойные слеши, кодирует путь
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
     const tn = val.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
-    const cleanVal = val.replace(/\/\//g, '/'); // убираем двойные слеши
-    const u = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${encodeURIComponent(cleanVal)}`;
+    const cleanVal = val.replace(/\/\//g, '/');
+    const u = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${encodeURI(cleanVal)}`;
     return `<a href="${u}" target="_blank">📷 Фото</a>`;
   }
   return val;
@@ -123,7 +98,7 @@ async function loadAllData() {
     gasGet('Операторы'), gasGet('Ремонты'), gasGet('Склад_Запчастей'), gasGet('Дефекты')
   ]);
   TECH = tech.map(t => ({ ...t, Статус: (t.Статус || '').trim() }));
-  JOURNAL = (journal || []).sort((a, b) => new Date(b.Дата) - new Date(a.Дата));
+  JOURNAL = (journal || []).sort((a,b)=>new Date(b.Дата)-new Date(a.Дата));
   OPERATORS = ops || [];
   REPAIRS = repairs || [];
   STOCK = stock || [];
@@ -135,16 +110,16 @@ function getDateRange() {
   const now = new Date();
   let from, to = new Date();
   if (journalPeriod === 'week') {
-    const day = now.getDay(), diff = day === 0 ? 6 : day - 1;
-    from = new Date(now); from.setDate(now.getDate() - diff); from.setHours(0,0,0,0);
-    to = new Date(from); to.setDate(from.getDate() + 6); to.setHours(23,59,59,999);
+    const day = now.getDay(), diff = day === 0 ? 6 : day-1;
+    from = new Date(now); from.setDate(now.getDate()-diff); from.setHours(0,0,0,0);
+    to = new Date(from); to.setDate(from.getDate()+6); to.setHours(23,59,59,999);
   } else if (journalPeriod === 'prevWeek') {
-    const day = now.getDay(), diff = day === 0 ? 6 : day - 1;
-    from = new Date(now); from.setDate(now.getDate() - diff - 7); from.setHours(0,0,0,0);
-    to = new Date(from); to.setDate(from.getDate() + 6); to.setHours(23,59,59,999);
+    const day = now.getDay(), diff = day === 0 ? 6 : day-1;
+    from = new Date(now); from.setDate(now.getDate()-diff-7); from.setHours(0,0,0,0);
+    to = new Date(from); to.setDate(from.getDate()+6); to.setHours(23,59,59,999);
   } else if (journalPeriod === 'month') {
     from = new Date(now.getFullYear(), now.getMonth(), 1);
-    to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23,59,59,999);
+    to = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
   } else if (journalPeriod === 'custom' && customFrom && customTo) {
     from = new Date(customFrom); from.setHours(0,0,0,0);
     to = new Date(customTo); to.setHours(23,59,59,999);
@@ -168,7 +143,7 @@ function renderJournal() {
       <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
       <td>${j.Аккамуляторная_батарея || ''}</td>
       <td>${hasDefect ? '🔺 Дефекты' : ''}</td>
-    </td>`;
+    </tr>`;
   }).join('');
 }
 
@@ -278,10 +253,7 @@ window.handlePhotoUpload = function (itemId, input) {
   const reader = new FileReader();
   reader.onload = e => {
     const img = document.getElementById(`prev_${itemId}`);
-    if (img) {
-      img.src = e.target.result;
-      img.style.display = 'block';
-    }
+    if (img) { img.src = e.target.result; img.style.display = 'block'; }
     shiftData[`photo_${itemId}`] = e.target.result.split(',')[1];
   };
   reader.readAsDataURL(input.files[0]);
@@ -307,8 +279,7 @@ function renderShiftStep() {
   const saveBtn = document.getElementById('shiftSaveBtn');
 
   if (shiftStep === 1) {
-    const techOptions = TECH.filter(t => t.Статус === 'В работе')
-      .map(t => `<option value="${t.ID_Техники}">${t.ID_Техники}</option>`).join('');
+    const techOptions = TECH.filter(t => t.Статус === 'В работе').map(t => `<option value="${t.ID_Техники}">${t.ID_Техники}</option>`).join('');
     container.innerHTML = `
       <div class="fp"><label class="fl">Тип записи</label>
         <div><label><input type="radio" name="shiftType" value="Прием смены" ${shiftType==='Прием смены'?'checked':''} onchange="updateShiftType(this.value)"> Прием</label>
@@ -320,9 +291,7 @@ function renderShiftStep() {
       <div><label class="fl">Топливо (л) *</label><input id="shiftFuel" type="number" step="0.01" class="fi"></div>
       <div><label class="fl">АКБ (В)</label><input id="shiftBattery" type="number" step="0.1" class="fi"></div></div>
     `;
-    backBtn.style.display = 'none';
-    nextBtn.style.display = 'flex';
-    saveBtn.style.display = 'none';
+    backBtn.style.display = 'none'; nextBtn.style.display = 'flex'; saveBtn.style.display = 'none';
   } else if (shiftStep === 2 && shiftType === 'Сдача смены') {
     saveShiftFinal();
   } else if (shiftStep === 2 && shiftType === 'Прием смены') {
@@ -348,9 +317,7 @@ function renderShiftStep() {
     }
     html += `<div class="fp"><button id="checklistSaveBtn" class="btn btn-full">✓ Готово, продолжить</button></div></div>`;
     container.innerHTML = html;
-    backBtn.style.display = 'flex';
-    nextBtn.style.display = 'none';
-    saveBtn.style.display = 'none';
+    backBtn.style.display = 'flex'; nextBtn.style.display = 'none'; saveBtn.style.display = 'none';
     document.getElementById('checklistSaveBtn').onclick = () => {
       let allSelected = true;
       for (let id of Object.keys(checklistLabels)) {
@@ -365,61 +332,54 @@ function renderShiftStep() {
         return;
       }
       const hasDefects = Object.entries(shiftData).some(([k,v]) => k.startsWith('status_') && v === 'дефект');
-      if (hasDefects) {
-        shiftStep = 3;
-        renderShiftStep();
-      } else {
-        saveShiftFinal();
-      }
+      if (hasDefects) { shiftStep = 3; renderShiftStep(); } else { saveShiftFinal(); }
     };
   } else if (shiftStep === 3 && shiftType === 'Прием смены') {
     container.innerHTML = `
-      <div class="fp"><label class="fl">Общее описание дефектов</label><textarea id="shiftDefects" class="ft" rows="2"></textarea></div>
-      <div class="fp"><button id="addDefectBtn" class="btn-outline btn">➕ Добавить дефект с фото</button></div>
-      <div id="defectsList"></div>
-      <div class="fp"><button id="saveShiftFinalBtn" class="btn btn-full">✓ Сохранить смену</button></div>
+      <div class="fp"><label class="fl">ОБЩЕЕ ОПИСАНИЕ ДЕФЕКТОВ (НЕОБЯЗАТЕЛЬНО)</label><textarea id="shiftDefects" class="ft" rows="2"></textarea></div>
+      <div style="border-top:1px solid var(--b); margin:16px 0;"></div>
+      <div class="fp" style="background:var(--bg3); border-radius:12px; margin:0 18px 16px 18px;">
+        <label class="fl">ДОБАВИТЬ НОВЫЙ ДЕФЕКТ</label>
+        <input type="text" id="newDefectDesc" class="fi" placeholder="Опишите дефект..." style="margin-bottom:8px;">
+        <label class="btn btn-outline" style="display:block; text-align:center; cursor:pointer;">📷 Прикрепить фото<input type="file" id="newDefectPhoto" accept="image/*" capture="environment" style="display:none;"></label>
+        <button id="addNewDefectToListBtn" class="btn" style="width:100%; margin-top:8px; background:var(--grn);">+ Добавить в список</button>
+      </div>
+      <div id="defectsList" style="padding:0 18px;"></div>
+      <div class="fp"><button id="saveShiftFinalBtn" class="btn btn-full" style="padding:12px;">✓ СОХРАНИТЬ СМЕНУ</button></div>
     `;
+    let tempDefectPhoto = null, tempDefectPreview = null;
+    document.getElementById('newDefectPhoto').onchange = (e) => {
+      if (e.target.files && e.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          tempDefectPhoto = ev.target.result.split(',')[1];
+          tempDefectPreview = ev.target.result;
+          showToast('Фото прикреплено!', false);
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      }
+    };
     const renderDefectsList = () => {
       const listDiv = document.getElementById('defectsList');
       if (!listDiv) return;
       listDiv.innerHTML = defectsArray.map((d, idx) => `
-        <div style="padding:8px; background:var(--bg3); border-radius:8px; margin-bottom:8px;">
-          <div>${d.text}</div>
-          ${d.photoPreview ? `<img src="${d.photoPreview}" style="max-width:100px;">` : ''}
-          <button class="btn-outline btn" style="padding:2px 8px;" onclick="removeDefect(${idx})">Удалить</button>
+        <div style="padding:12px; background:#fff; border:1px solid var(--b); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="flex:1;"><div style="font-weight:600; font-size:14px; margin-bottom:4px;">${d.text}</div>${d.photoPreview ? `<img src="${d.photoPreview}" style="max-width:60px; border-radius:4px;">` : '<span style="color:var(--tx3); font-size:12px;">Нет фото</span>'}</div>
+          <button class="btn btn-outline small" style="color:var(--red); border-color:var(--red);" onclick="removeDefect(${idx})">Удалить</button>
         </div>
       `).join('');
     };
-    window.removeDefect = (idx) => { defectsArray.splice(idx, 1); renderDefectsList(); };
-    document.getElementById('addDefectBtn').onclick = () => {
-      const text = prompt('Введите описание дефекта:');
-      if (!text) return;
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = 'image/*';
-      fileInput.capture = 'environment';
-      fileInput.onchange = (e) => {
-        if (e.target.files && e.target.files[0]) {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            defectsArray.push({
-              text,
-              photoBase64: ev.target.result.split(',')[1],
-              photoPreview: ev.target.result
-            });
-            renderDefectsList();
-          };
-          reader.readAsDataURL(e.target.files[0]);
-        } else {
-          defectsArray.push({ text, photoBase64: null, photoPreview: null });
-          renderDefectsList();
-        }
-      };
-      fileInput.click();
+    window.removeDefect = (idx) => { defectsArray.splice(idx,1); renderDefectsList(); };
+    document.getElementById('addNewDefectToListBtn').onclick = () => {
+      const text = document.getElementById('newDefectDesc').value.trim();
+      if (!text) { showToast('Введите описание дефекта', true); return; }
+      defectsArray.push({ text, photoBase64: tempDefectPhoto, photoPreview: tempDefectPreview });
+      document.getElementById('newDefectDesc').value = '';
+      tempDefectPhoto = null; tempDefectPreview = null;
+      document.getElementById('newDefectPhoto').value = '';
+      renderDefectsList();
     };
-    backBtn.style.display = 'flex';
-    nextBtn.style.display = 'none';
-    saveBtn.style.display = 'none';
+    backBtn.style.display = 'flex'; nextBtn.style.display = 'none'; saveBtn.style.display = 'none';
     document.getElementById('saveShiftFinalBtn').onclick = () => saveShiftFinal();
   }
 }
@@ -443,10 +403,7 @@ function shiftNext() {
   }
 }
 
-function shiftBack() {
-  if (shiftStep > 1) shiftStep--;
-  renderShiftStep();
-}
+function shiftBack() { if (shiftStep > 1) shiftStep--; renderShiftStep(); }
 
 async function saveShiftFinal() {
   const saveBtn = document.getElementById('saveShiftFinalBtn');
@@ -458,7 +415,7 @@ async function saveShiftFinal() {
   try {
     const nowFormatted = getNowFormatted();
     const rec = {
-      ID_Записи: Math.random().toString(36).substr(2, 8),
+      ID_Записи: Math.random().toString(36).substr(2,8),
       Дата: nowFormatted,
       Тип_записи: shiftType,
       "Смена (День/Ночь)": shiftData.shift,
@@ -473,11 +430,7 @@ async function saveShiftFinal() {
       for (let [id, label] of Object.entries(checklistLabels)) {
         if (id === 'oil_motor' || id === 'oil_coolant') {
           const photoBase64 = shiftData[`photo_${id}`];
-          if (photoBase64 && photoBase64.length > 10) {
-            rec[label] = await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`);
-          } else {
-            rec[label] = '';
-          }
+          rec[label] = (photoBase64 && photoBase64.length > 10) ? await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`) : '';
         } else {
           const st = shiftData[`status_${id}`];
           rec[label] = st === 'дефект' ? 'Дефект' : 'В норме';
@@ -485,21 +438,12 @@ async function saveShiftFinal() {
       }
     }
     await gasPost('append', 'Журнал смен', rec);
-
     for (let def of defectsArray) {
-      const defectId = Math.random().toString(36).substr(2, 8);
+      const defectId = Math.random().toString(36).substr(2,8);
       let photoUrl = '';
-      if (def.photoBase64 && def.photoBase64.length > 10) {
-        photoUrl = await uploadPhoto(def.photoBase64, `defect_${defectId}.jpg`, 'Defects');
-      }
-      await gasPost('append', 'Дефекты', {
-        ID_Дефекта: defectId,
-        ID_Смены: rec.ID_Записи,
-        Описание: def.text,
-        Фото: photoUrl
-      });
+      if (def.photoBase64 && def.photoBase64.length > 10) photoUrl = await uploadPhoto(def.photoBase64, `defect_${defectId}.jpg`, 'Defects');
+      await gasPost('append', 'Дефекты', { ID_Дефекта: defectId, ID_Смены: rec.ID_Записи, Описание: def.text, Фото: photoUrl });
     }
-
     showToast(`✅ ${shiftType} сохранена`);
     closeShiftModal();
     shiftData = {};
