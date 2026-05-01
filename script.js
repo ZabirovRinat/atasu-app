@@ -46,13 +46,17 @@ async function gasGet(sheet) {
   } catch (e) { return []; }
 }
 
-// gasPost и uploadPhoto без заголовков (фикс CORS)
+// ИСПРАВЛЕННЫЕ gasPost и uploadPhoto (с явной передачей sheet)
 async function gasPost(action, sheet, data, key = null, extra = null) {
   try {
     const payload = { action, sheet, data };
     if (key) payload.key = key;
     if (extra) Object.assign(payload, extra);
-    await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify(payload)
+    });
     return true;
   } catch (e) {
     throw new Error('Network error: ' + e.message);
@@ -62,7 +66,8 @@ async function gasPost(action, sheet, data, key = null, extra = null) {
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
   try {
     await fetch(GAS_URL, {
-      method: 'POST', mode: 'no-cors',
+      method: 'POST',
+      mode: 'no-cors',
       body: JSON.stringify({ action: 'upload_photo', sheet: 'Журнал смен', fileName, base64, folder })
     });
     return `/Photos/${folder}/${fileName}`;
@@ -91,7 +96,7 @@ function formatDate(d, withTime = false) {
   return withTime ? date.toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : date.toISOString().slice(0,10);
 }
 
-// Фото: полное кодирование пути (чиним старые ссылки AppSheet)
+// ИСПРАВЛЕННАЯ parsePhotoValue (полное кодирование пути)
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
@@ -141,7 +146,6 @@ function getDateRange() {
   return { from, to };
 }
 
-// Рендер журнала (скрываем сдачу смены для оператора)
 function renderJournal() {
   const { from, to } = getDateRange();
   let filtered = JOURNAL.filter(j => { let d = new Date(j.Дата); return d >= from && d <= to; });
@@ -159,7 +163,7 @@ function renderJournal() {
       <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
       <td>${j.Аккамуляторная_батарея || ''}</td>
       <td>${hasDefect ? '🔺 Дефекты' : ''}</td>
-     </tr>`;
+    </tr>`;
   }).join('');
 }
 
