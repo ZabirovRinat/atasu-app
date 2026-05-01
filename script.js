@@ -1,5 +1,5 @@
 // ==================== КОНФИГУРАЦИЯ ====================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbyQluQxEYnKJ0i6aLiZJ93VzEoyDsj8GYUdH_Jmjg9NIlDuFAoQaLQljH1lZQoRasaRvA/exec';
+const GAS_URL = '/api/gas'; 
 
 let TECH = [], JOURNAL = [], OPERATORS = [], DEFECTS = [];
 let currentUser = null, currentScreen = 'journal';
@@ -96,7 +96,8 @@ function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    return `<a href="https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent('Журнал смен')}&fileName=${encodeURIComponent(val)}" target="_blank">📷 Фото (AppSheet)</a>`;
+    // Новый правильный appName
+    return `<a href="https://www.appsheet.com/template/gettablefileurl?appName=НОВЫЙ_APP_NAME&tableName=${encodeURIComponent('Журнал смен')}&fileName=${encodeURIComponent(val)}" target="_blank">📷 Фото (AppSheet)</a>`;
   }
   return val;
 }
