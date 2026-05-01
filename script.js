@@ -46,6 +46,7 @@ async function gasGet(sheet) {
   } catch (e) { return []; }
 }
 
+// gasPost и uploadPhoto без заголовков (фикс CORS)
 async function gasPost(action, sheet, data, key = null, extra = null) {
   try {
     const payload = { action, sheet, data };
@@ -90,14 +91,13 @@ function formatDate(d, withTime = false) {
   return withTime ? date.toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : date.toISOString().slice(0,10);
 }
 
-// ---------- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ФОТО (с encodeURI вместо encodeURIComponent) ----------
+// Фото: полное кодирование пути (чиним старые ссылки AppSheet)
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
     const tn = val.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
-    const cleanVal = val.replace(/\/\//g, '/'); // убираем двойные слеши
-    const u = 'https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=' + encodeURIComponent(tn) + '&fileName=' + encodeURI(cleanVal);
+    const u = 'https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=' + encodeURIComponent(tn) + '&fileName=' + encodeURIComponent(val);
     return `<a href="${u}" target="_blank">📷 Фото</a>`;
   }
   return val;
@@ -141,17 +141,13 @@ function getDateRange() {
   return { from, to };
 }
 
-// ==================== РЕНДЕР ЖУРНАЛА (СКРЫВАЕМ "СДАЧУ СМЕНЫ" ДЛЯ ОПЕРАТОРА) ====================
+// Рендер журнала (скрываем сдачу смены для оператора)
 function renderJournal() {
   const { from, to } = getDateRange();
   let filtered = JOURNAL.filter(j => { let d = new Date(j.Дата); return d >= from && d <= to; });
-  
-  // Для оператора скрываем записи "Сдача смены"
   if (currentUser?.roleKey === 'operator') {
     filtered = filtered.filter(j => j.Тип_записи !== 'Сдача смены');
   }
-  // Для админа и механика показываем все (можно оставить как есть)
-  
   document.getElementById('journalBody').innerHTML = filtered.map(j => {
     const hasDefect = DEFECTS.some(d => d.ID_Смены === j.ID_Записи);
     return `<tr class="clickable-row" onclick="openJournalCard('${j.ID_Записи}')">
@@ -356,51 +352,67 @@ function renderShiftStep() {
     };
   } else if (shiftStep === 3 && shiftType === 'Прием смены') {
     container.innerHTML = `
-      <div class="fp"><label class="fl">ОБЩЕЕ ОПИСАНИЕ ДЕФЕКТОВ (НЕОБЯЗАТЕЛЬНО)</label><textarea id="shiftDefects" class="ft" rows="2"></textarea></div>
-      <div style="border-top:1px solid var(--b); margin:16px 0;"></div>
-      <div class="fp" style="background:var(--bg3); border-radius:12px; margin:0 18px 16px 18px;">
-        <label class="fl">ДОБАВИТЬ НОВЫЙ ДЕФЕКТ</label>
-        <input type="text" id="newDefectDesc" class="fi" placeholder="Опишите дефект..." style="margin-bottom:8px;">
-        <label class="btn btn-outline" style="display:block; text-align:center; cursor:pointer;">📷 Прикрепить фото<input type="file" id="newDefectPhoto" accept="image/*" capture="environment" style="display:none;"></label>
-        <button id="addNewDefectToListBtn" class="btn" style="width:100%; margin-top:8px; background:var(--grn);">+ Добавить в список</button>
+      <div class="fp"><label class="fl">ОБЩЕЕ ОПИСАНИЕ ДЕФЕКТОВ</label>
+        <textarea id="shiftDefects" class="ft" rows="2"></textarea>
       </div>
-      <div id="defectsList" style="padding:0 18px;"></div>
-      <div class="fp"><button id="saveShiftFinalBtn" class="btn btn-full" style="padding:12px;">✓ СОХРАНИТЬ СМЕНУ</button></div>
+      <div style="border-top: 1px solid var(--b); margin: 16px 0;"></div>
+      <div class="fp" style="background: var(--bg3); border-radius: 12px; padding: 12px; margin: 0 18px 16px 18px;">
+        <label class="fl">ДОБАВИТЬ НОВЫЙ ДЕФЕКТ</label>
+        <input type="text" id="newDefectDesc" class="fi" placeholder="Описание..." style="margin-bottom: 8px;">
+        <label class="btn btn-outline" style="display: block; text-align: center; cursor: pointer; margin-bottom: 8px;">
+          📷 Выбрать фото
+          <input type="file" id="newDefectPhoto" accept="image/*" capture="environment" style="display: none;">
+        </label>
+        <button id="addNewDefectToListBtn" class="btn" style="width: 100%; background: var(--grn);">+ Добавить в список</button>
+      </div>
+      <div id="defectsList" style="padding: 0 18px;"></div>
+      <div class="fp">
+        <button id="saveShiftFinalBtn" class="btn btn-full">✓ СОХРАНИТЬ СМЕНУ</button>
+      </div>
     `;
-    let tempDefectPhoto = null, tempDefectPreview = null;
-    document.getElementById('newDefectPhoto').onchange = (e) => {
-      if (e.target.files && e.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          tempDefectPhoto = ev.target.result.split(',')[1];
-          tempDefectPreview = ev.target.result;
-          showToast('Фото прикреплено!', false);
-        };
-        reader.readAsDataURL(e.target.files[0]);
-      }
-    };
-    const renderDefectsList = () => {
+
+    let tempPhoto = null, tempPreview = null;
+    const newPhotoInput = document.getElementById('newDefectPhoto');
+    if (newPhotoInput) {
+      newPhotoInput.onchange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+          const r = new FileReader();
+          r.onload = (ev) => { tempPhoto = ev.target.result.split(',')[1]; tempPreview = ev.target.result; showToast('Фото готово'); };
+          r.readAsDataURL(e.target.files[0]);
+        }
+      };
+    }
+
+    const renderList = () => {
       const listDiv = document.getElementById('defectsList');
       if (!listDiv) return;
-      listDiv.innerHTML = defectsArray.map((d, idx) => `
-        <div style="padding:12px; background:#fff; border:1px solid var(--b); border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-          <div style="flex:1;"><div style="font-weight:600; font-size:14px; margin-bottom:4px;">${d.text}</div>${d.photoPreview ? `<img src="${d.photoPreview}" style="max-width:60px; border-radius:4px;">` : '<span style="color:var(--tx3); font-size:12px;">Нет фото</span>'}</div>
-          <button class="btn btn-outline small" style="color:var(--red); border-color:var(--red);" onclick="removeDefect(${idx})">Удалить</button>
+      listDiv.innerHTML = defectsArray.map((d, i) => `
+        <div style="padding: 10px; background: #fff; border: 1px solid var(--b); border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div><b>${d.text}</b><br>${d.photoPreview ? `<img src="${d.photoPreview}" style="height:40px;">` : ''}</div>
+          <button class="btn btn-outline small" onclick="removeDefect(${i})">✕</button>
         </div>
       `).join('');
     };
-    window.removeDefect = (idx) => { defectsArray.splice(idx,1); renderDefectsList(); };
-    document.getElementById('addNewDefectToListBtn').onclick = () => {
-      const text = document.getElementById('newDefectDesc').value.trim();
-      if (!text) { showToast('Введите описание дефекта', true); return; }
-      defectsArray.push({ text, photoBase64: tempDefectPhoto, photoPreview: tempDefectPreview });
-      document.getElementById('newDefectDesc').value = '';
-      tempDefectPhoto = null; tempDefectPreview = null;
-      document.getElementById('newDefectPhoto').value = '';
-      renderDefectsList();
-    };
-    backBtn.style.display = 'flex'; nextBtn.style.display = 'none'; saveBtn.style.display = 'none';
-    document.getElementById('saveShiftFinalBtn').onclick = () => saveShiftFinal();
+
+    window.removeDefect = (i) => { defectsArray.splice(i,1); renderList(); };
+    const addBtn = document.getElementById('addNewDefectToListBtn');
+    if (addBtn) {
+      addBtn.onclick = () => {
+        const txt = document.getElementById('newDefectDesc').value.trim();
+        if (!txt) { showToast('Введите описание дефекта', true); return; }
+        defectsArray.push({ text: txt, photoBase64: tempPhoto, photoPreview: tempPreview });
+        document.getElementById('newDefectDesc').value = '';
+        tempPhoto = null; tempPreview = null;
+        if (newPhotoInput) newPhotoInput.value = '';
+        renderList();
+      };
+    }
+
+    backBtn.style.display = 'flex';
+    nextBtn.style.display = 'none';
+    saveBtn.style.display = 'none';
+    const finalSaveBtn = document.getElementById('saveShiftFinalBtn');
+    if (finalSaveBtn) finalSaveBtn.onclick = () => saveShiftFinal();
   }
 }
 
@@ -460,7 +472,9 @@ async function saveShiftFinal() {
     for (let def of defectsArray) {
       const defectId = Math.random().toString(36).substr(2,8);
       let photoUrl = '';
-      if (def.photoBase64 && def.photoBase64.length > 10) photoUrl = await uploadPhoto(def.photoBase64, `defect_${defectId}.jpg`, 'Defects');
+      if (def.photoBase64 && def.photoBase64.length > 10) {
+        photoUrl = await uploadPhoto(def.photoBase64, `defect_${defectId}.jpg`, 'Defects');
+      }
       await gasPost('append', 'Дефекты', { ID_Дефекта: defectId, ID_Смены: rec.ID_Записи, Описание: def.text, Фото: photoUrl });
     }
     showToast(`✅ ${shiftType} сохранена`);
