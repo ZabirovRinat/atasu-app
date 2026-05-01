@@ -62,7 +62,7 @@ async function gasPost(action, sheet, data, key = null, extra = null) {
   return json;
 }
 
-async function uploadPhoto(base64, fileName, folder) {
+async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
   if (!base64 || base64.length < 10) return '';
   try {
     const res = await fetch(GAS_URL, {
@@ -405,8 +405,24 @@ async function saveShiftFinal() {
   }
   try {
     const nowFormatted = getNowFormatted();
+    const recId = Math.random().toString(36).substr(2,8);
+
+    // Загружаем фото и получаем прямые ссылки Drive
+    let linkOilMotor = '';
+    let linkOilCoolant = '';
+    if (shiftType === 'Прием смены') {
+      const b64motor = shiftData['photo_oil_motor'];
+      if (b64motor) {
+        linkOilMotor = await uploadPhoto(b64motor, `shift_${recId}_oil_motor.jpg`, 'Журнал_смен_Images');
+      }
+      const b64coolant = shiftData['photo_oil_coolant'];
+      if (b64coolant) {
+        linkOilCoolant = await uploadPhoto(b64coolant, `shift_${recId}_oil_coolant.jpg`, 'Журнал_смен_Images');
+      }
+    }
+
     const rec = {
-      ID_Записи: Math.random().toString(36).substr(2,8),
+      ID_Записи: recId,
       Дата: nowFormatted,
       Тип_записи: shiftType,
       "Смена (День/Ночь)": shiftData.shift,
@@ -415,24 +431,24 @@ async function saveShiftFinal() {
       Моточасы: shiftData.h,
       "Уровень топлива (л)": shiftData.fuel,
       Аккамуляторная_батарея: shiftData.bat,
-      Дефекты: document.getElementById('shiftDefects')?.value || ''
+      Дефекты: document.getElementById('shiftDefects')?.value || '',
+      [checklistLabels.oil_motor]: linkOilMotor,
+      [checklistLabels.oil_coolant]: linkOilCoolant
     };
+
+    // Добавляем статусы остальных пунктов чек-листа
     if (shiftType === 'Прием смены') {
       for (let [id, label] of Object.entries(checklistLabels)) {
-        if (id === 'oil_motor' || id === 'oil_coolant') {
-          const photoBase64 = shiftData[`photo_${id}`];
-          if (photoBase64 && photoBase64.length > 10) {
-            rec[label] = await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`);
-          } else {
-            rec[label] = '';
-          }
-        } else {
-          const st = shiftData[`status_${id}`];
-          rec[label] = st === 'дефект' ? 'Дефект' : 'В норме';
-        }
+        if (id === 'oil_motor' || id === 'oil_coolant') continue;
+        const st = shiftData[`status_${id}`];
+        rec[label] = st === 'дефект' ? 'Дефект' : 'В норме';
       }
     }
+
+    // Сохраняем основную запись
     await gasPost('append', 'Журнал смен', rec);
+
+    // Сохраняем дефекты
     for (let def of defectsArray) {
       const defectId = Math.random().toString(36).substr(2,8);
       let photoUrl = '';
@@ -446,6 +462,7 @@ async function saveShiftFinal() {
         Фото: photoUrl
       });
     }
+
     showToast(`✅ ${shiftType} сохранена`);
     closeShiftModal();
     shiftData = {};
