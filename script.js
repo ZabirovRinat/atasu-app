@@ -94,10 +94,13 @@ function formatDate(d, withTime = false) {
 
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
-  if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
+  // Прямые ссылки Google Drive (новые и старые)
+  if (val.includes('drive.google.com')) {
+    return `<a href="${val}" target="_blank" class="photo-link">📷 Просмотр фото</a>`;
+  }
+  // Старые пути AppSheet – просто заглушка
   if (val.startsWith('/Photos/')) {
-    // Используем актуальный appName из вашего AppSheet
-    return `<a href="https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-459302909&tableName=${encodeURIComponent('Журнал смен')}&fileName=${encodeURIComponent(val)}" target="_blank">📷 Фото (AppSheet)</a>`;
+    return `<span style="color:var(--tx3); font-size:11px;">📁 Арх. фото (AppSheet)</span>`;
   }
   return val;
 }
