@@ -6,7 +6,6 @@ let journalPeriod = 'week', customFrom = null, customTo = null;
 let shiftStep = 1, shiftType = 'Прием смены', shiftData = {};
 let defectsArray = [];
 
-// Словарь чек-листа (ключ -> название столбца в таблице)
 const checklistLabels = {
   oil_motor: 'Уровень моторного масла',
   oil_coolant: 'Уровень охлаждающей жидкости',
@@ -26,7 +25,7 @@ const checklistLabels = {
   fire_ext: 'Огнетушитель/Аптечка'
 };
 
-// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
 async function gasGet(sheet) {
   try {
     const url = `${GAS_URL}?sheet=${encodeURIComponent(sheet)}&t=${Date.now()}`;
@@ -50,7 +49,6 @@ async function gasPost(action, sheet, data, key = null, extra = null) {
   } catch (e) { return false; }
 }
 
-// Загрузка фото с указанием параметра sheet (чтобы не создавались пустые листы!)
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
   try {
     await fetch(GAS_URL, {
@@ -58,7 +56,7 @@ async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Ima
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'upload_photo',
-        sheet: 'Журнал смен',   // <-- КРИТИЧЕСКИ ВАЖНО!
+        sheet: 'Журнал смен',
         fileName: fileName,
         base64: base64,
         folder: folder
@@ -75,7 +73,6 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Формат даты ISO с буквой T (для корректного парсинга браузерами)
 function getNowFormatted() {
   const d = new Date();
   const year = d.getFullYear();
@@ -83,7 +80,7 @@ function getNowFormatted() {
   const day = String(d.getDate()).padStart(2, '0');
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`; // ISO-like
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
 function formatDate(d, withTime = false) {
@@ -109,14 +106,8 @@ function parsePhotoValue(val) {
 // ==================== ЗАГРУЗКА ДАННЫХ ====================
 async function loadAllData() {
   const [tech, journal, refuel, income, ops, repairs, stock, defects] = await Promise.all([
-    gasGet('Техника'),
-    gasGet('Журнал смен'),
-    gasGet('Заправки'),
-    gasGet('Поступление ГСМ'),
-    gasGet('Операторы'),
-    gasGet('Ремонты'),
-    gasGet('Склад_Запчастей'),
-    gasGet('Дефекты')
+    gasGet('Техника'), gasGet('Журнал смен'), gasGet('Заправки'), gasGet('Поступление ГСМ'),
+    gasGet('Операторы'), gasGet('Ремонты'), gasGet('Склад_Запчастей'), gasGet('Дефекты')
   ]);
   TECH = tech.map(t => ({ ...t, Статус: (t.Статус || '').trim() }));
   JOURNAL = (journal || []).sort((a, b) => new Date(b.Дата) - new Date(a.Дата));
@@ -127,7 +118,7 @@ async function loadAllData() {
   renderJournal();
 }
 
-// ==================== ФИЛЬТРАЦИЯ ЖУРНАЛА ====================
+// ==================== ФИЛЬТРАЦИЯ ====================
 function getDateRange() {
   const now = new Date();
   let from, to = new Date();
@@ -143,9 +134,8 @@ function getDateRange() {
   } else if (journalPeriod === 'prevWeek') {
     const day = now.getDay();
     const diff = day === 0 ? 6 : day - 1;
-    let lastMonday = new Date(now);
-    lastMonday.setDate(now.getDate() - diff - 7);
-    from = new Date(lastMonday);
+    from = new Date(now);
+    from.setDate(now.getDate() - diff - 7);
     from.setHours(0, 0, 0, 0);
     to = new Date(from);
     to.setDate(from.getDate() + 6);
@@ -173,22 +163,20 @@ function renderJournal() {
   });
   document.getElementById('journalBody').innerHTML = filtered.map(j => {
     const hasDefect = DEFECTS.some(d => d.ID_Смены === j.ID_Записи);
-    return `
-      <tr class="clickable-row" onclick="openJournalCard('${j.ID_Записи}')">
-        <td>${formatDate(j.Дата, true)}</td>
-        <td>${j.ID_Техники || ''}</td>
-        <td>${j.Оператор || ''}</td>
-        <td>${j["Смена (День/Ночь)"] || j.Смена || ''}</td>
-        <td>${j.Моточасы || 0}</td>
-        <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
-        <td>${j.Аккамуляторная_батарея || ''}</td>
-        <td>${hasDefect ? '🔺 Дефекты' : ''}</td>
-      </tr>
-    `;
+    return `<tr class="clickable-row" onclick="openJournalCard('${j.ID_Записи}')">
+      <td>${formatDate(j.Дата, true)}</td>
+      <td>${j.ID_Техники || ''}</td>
+      <td>${j.Оператор || ''}</td>
+      <td>${j["Смена (День/Ночь)"] || j.Смена || ''}</td>
+      <td>${j.Моточасы || 0}</td>
+      <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
+      <td>${j.Аккамуляторная_батарея || ''}</td>
+      <td>${hasDefect ? '🔺 Дефекты' : ''}</td>
+    <tr>`;
   }).join('');
 }
 
-// ==================== ОТКРЫТИЕ КАРТОЧКИ СМЕНЫ ====================
+// ==================== ОТКРЫТИЕ КАРТОЧКИ ====================
 window.openJournalCard = async (id) => {
   try {
     const record = JOURNAL.find(j => j.ID_Записи === id);
@@ -228,7 +216,7 @@ window.openJournalCard = async (id) => {
 
 window.closeJournalCard = () => document.getElementById('journalCardModal').classList.remove('open');
 
-// ==================== НАВИГАЦИЯ И РОЛИ ====================
+// ==================== НАВИГАЦИЯ ====================
 const screenAccess = {
   journal: ['admin', 'manager', 'coordinator', 'mechanic', 'slesar', 'operator'],
   tech: ['admin', 'manager', 'coordinator', 'mechanic', 'slesar'],
@@ -468,16 +456,14 @@ function shiftBack() {
 }
 
 async function saveShiftFinal() {
-  // Защита от двойного клика
   const saveBtn = document.getElementById('saveShiftFinalBtn');
   if (saveBtn && saveBtn.disabled) return;
   if (saveBtn) {
     saveBtn.disabled = true;
     saveBtn.innerText = 'Сохранение...';
   }
-
   try {
-    const nowFormatted = getNowFormatted(); // ISO-like с T
+    const nowFormatted = getNowFormatted();
     const rec = {
       ID_Записи: Math.random().toString(36).substr(2, 8),
       Дата: nowFormatted,
@@ -490,25 +476,18 @@ async function saveShiftFinal() {
       Аккамуляторная_батарея: shiftData.bat,
       Дефекты: document.getElementById('shiftDefects')?.value || ''
     };
-
     if (shiftType === 'Прием смены') {
       for (let [id, label] of Object.entries(checklistLabels)) {
         if (id === 'oil_motor' || id === 'oil_coolant') {
           const photoBase64 = shiftData[`photo_${id}`];
-          if (photoBase64 && photoBase64.length > 10) {
-            rec[label] = await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`);
-          } else {
-            rec[label] = '';
-          }
+          rec[label] = (photoBase64 && photoBase64.length > 10) ? await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`) : '';
         } else {
           const st = shiftData[`status_${id}`];
           rec[label] = st === 'норме' ? 'В норме' : (st === 'дефект' ? 'Дефект' : '');
         }
       }
     }
-
     await gasPost('append', 'Журнал смен', rec);
-
     for (let def of defectsArray) {
       const defectId = Math.random().toString(36).substr(2, 8);
       let photoUrl = '';
@@ -522,7 +501,6 @@ async function saveShiftFinal() {
         Фото: photoUrl
       });
     }
-
     showToast(`✅ ${shiftType} сохранена`);
     closeShiftModal();
     shiftData = {};
@@ -548,11 +526,7 @@ function setupJournalFilters() {
       journalPeriod = btn.dataset.period;
       document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      if (journalPeriod === 'custom') {
-        document.getElementById('customPeriod').style.display = 'flex';
-      } else {
-        document.getElementById('customPeriod').style.display = 'none';
-      }
+      document.getElementById('customPeriod').style.display = journalPeriod === 'custom' ? 'flex' : 'none';
       renderJournal();
     };
   });
@@ -587,8 +561,7 @@ async function init() {
     document.getElementById('atasu-app').style.visibility = 'visible';
     await loadAllData();
     buildSidebar();
-    if (currentUser.roleKey === 'operator') switchScreen('journal');
-    else switchScreen('journal');
+    switchScreen('journal');
     document.getElementById('userName').innerText = currentUser.name;
     document.getElementById('userRole').innerText = user.Роль;
     document.getElementById('userAvatar').innerText = currentUser.name.charAt(0);
