@@ -141,9 +141,17 @@ function getDateRange() {
   return { from, to };
 }
 
+// ==================== РЕНДЕР ЖУРНАЛА (СКРЫВАЕМ "СДАЧУ СМЕНЫ" ДЛЯ ОПЕРАТОРА) ====================
 function renderJournal() {
   const { from, to } = getDateRange();
-  const filtered = JOURNAL.filter(j => { let d = new Date(j.Дата); return d >= from && d <= to; });
+  let filtered = JOURNAL.filter(j => { let d = new Date(j.Дата); return d >= from && d <= to; });
+  
+  // Для оператора скрываем записи "Сдача смены"
+  if (currentUser?.roleKey === 'operator') {
+    filtered = filtered.filter(j => j.Тип_записи !== 'Сдача смены');
+  }
+  // Для админа и механика показываем все (можно оставить как есть)
+  
   document.getElementById('journalBody').innerHTML = filtered.map(j => {
     const hasDefect = DEFECTS.some(d => d.ID_Смены === j.ID_Записи);
     return `<tr class="clickable-row" onclick="openJournalCard('${j.ID_Записи}')">
