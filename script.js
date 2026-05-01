@@ -1,12 +1,12 @@
-// ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+// ==================== КОНФИГУРАЦИЯ ====================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbythcwykMRWz0fYW2hz7CXt6iTGo-BSMlfrgISJx8lde4rTmvhDnlDuU0avO72BYHRX/exec';
+
 let TECH = [], JOURNAL = [], GSM_RAW = [], OPERATORS = [], REPAIRS = [], STOCK = [], DEFECTS = [];
 let currentUser = null, currentScreen = 'journal';
 let journalPeriod = 'week', customFrom = null, customTo = null;
 let shiftStep = 1, shiftType = 'Прием смены', shiftData = {};
 let defectsArray = [];
 
-// ТОЧНЫЕ НАЗВАНИЯ КОЛОНОК (как в Google Sheets)
 const checklistLabels = {
   oil_motor: 'Уровень моторного масла',
   oil_coolant: 'Уровень охлаждающей жидкости',
@@ -49,21 +49,20 @@ async function gasPost(action, sheet, data, key = null, extra = null) {
   const payload = { action, sheet, data };
   if (key) payload.key = key;
   if (extra) Object.assign(payload, extra);
-  const response = await fetch(GAS_URL, {
+  await fetch(GAS_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(payload)
   });
-  if (!response.ok) throw new Error('HTTP ' + response.status);
-  const result = await response.json();
-  if (!result.ok) throw new Error(result.error || 'Unknown error');
-  return result;
+  return true;
 }
 
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
-  const response = await fetch(GAS_URL, {
+  await fetch(GAS_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({
       action: 'upload_photo',
       sheet: 'Журнал смен',
@@ -72,10 +71,7 @@ async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Ima
       folder: folder
     })
   });
-  if (!response.ok) throw new Error('HTTP ' + response.status);
-  const result = await response.json();
-  if (!result.ok) throw new Error(result.error || 'Upload failed');
-  return result.viewUrl || `/Photos/${folder}/${fileName}`;
+  return `/Photos/${folder}/${fileName}`;
 }
 
 function showToast(msg, isError = false) {
@@ -104,10 +100,7 @@ function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    let cleanVal = val.replace(/\/+/g, '/');
-    const tn = cleanVal.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
-    const url = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${encodeURIComponent(cleanVal)}`;
-    return `<a href="${url}" target="_blank">📷 Фото</a>`;
+    return '📷 Фото (из AppSheet, недоступно)';
   }
   return val;
 }
@@ -487,7 +480,12 @@ async function saveShiftFinal() {
       if (def.photoBase64 && def.photoBase64.length > 10) {
         photoUrl = await uploadPhoto(def.photoBase64, `defect_${defectId}.jpg`, 'Defects');
       }
-      await gasPost('append', 'Дефекты', { ID_Дефекта: defectId, ID_Смены: rec.ID_Записи, Описание: def.text, Фото: photoUrl });
+      await gasPost('append', 'Дефекты', {
+        ID_Дефекта: defectId,
+        ID_Смены: rec.ID_Записи,
+        Описание: def.text,
+        Фото: photoUrl
+      });
     }
     showToast(`✅ ${shiftType} сохранена`);
     closeShiftModal();
@@ -496,7 +494,7 @@ async function saveShiftFinal() {
     await loadAllData();
   } catch (e) {
     showToast('Ошибка сохранения: ' + e.message, true);
-    console.error('Полная ошибка сохранения:', e);
+    console.error(e);
   } finally {
     if (saveBtn) {
       saveBtn.disabled = false;
