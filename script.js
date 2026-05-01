@@ -35,42 +35,55 @@ async function gasGet(sheet) {
   } catch (e) { return []; }
 }
 
+// Исправленный gasPost – без no-cors, с обработкой ответа и пробросом ошибки
 async function gasPost(action, sheet, data, key = null, extra = null) {
-  try {
-    const payload = { action, sheet, data };
-    if (key) payload.key = key;
-    if (extra) Object.assign(payload, extra);
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    return res.ok;
-  } catch (e) { return false; }
+  const payload = { action, sheet, data };
+  if (key) payload.key = key;
+  if (extra) Object.assign(payload, extra);
+  const response = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!result.ok) {
+    throw new Error(result.error || 'Неизвестная ошибка сервера');
+  }
+  return true;
 }
 
+// Исправленная uploadPhoto – без no-cors, с обработкой ответа
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
-  try {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'upload_photo',
-        sheet: 'Журнал смен',
-        fileName: fileName,
-        base64: base64,
-        folder: folder
-      })
-    });
-    return `/Photos/${folder}/${fileName}`;
-  } catch (e) { return ''; }
+  const payload = {
+    action: 'upload_photo',
+    sheet: 'Журнал смен',      // важно для правильной работы GAS
+    fileName: fileName,
+    base64: base64,
+    folder: folder
+  };
+  const response = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!result.ok) {
+    throw new Error(result.error || 'Ошибка загрузки фото');
+  }
+  // Ожидаем, что сервер вернёт path или viewUrl
+  return result.viewUrl || result.path || `/Photos/${folder}/${fileName}`;
 }
 
-function showToast(msg) {
+function showToast(msg, isError = false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  if (isError) t.style.background = '#dc2626';
+  else t.style.background = '#1e293b';
+  setTimeout(() => {
+    t.classList.remove('show');
+    t.style.background = '#1e293b';
+  }, 4000);
 }
 
 function getNowFormatted() {
@@ -92,14 +105,17 @@ function formatDate(d, withTime = false) {
     : date.toISOString().slice(0, 10);
 }
 
+// ИСПРАВЛЕННАЯ parsePhotoValue – чистит двойные слеши и регистр
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    const tn = val.includes('Defects') ? 'Дефекты' : 'Журнал смен';
-    // Важно: путь (val) не кодируем, только имя таблицы
-    const u = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${val}`;
-    return `<a href="${u}" target="_blank">📷 Фото</a>`;
+    // Определяем таблицу: по наличию 'defects' без учёта регистра
+    const tn = val.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
+    // Заменяем двойные и более слеши на одинарные
+    const cleanVal = val.replace(/\/+/g, '/');
+    const url = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${cleanVal}`;
+    return `<a href="${url}" target="_blank">📷 Фото</a>`;
   }
   return val;
 }
@@ -210,7 +226,7 @@ window.openJournalCard = async (id) => {
     `;
     document.getElementById('journalCardModal').classList.add('open');
   } catch (e) {
-    showToast('Ошибка при открытии: ' + e.message);
+    showToast('Ошибка при открытии: ' + e.message, true);
     console.error(e);
   }
 };
@@ -246,7 +262,7 @@ function buildSidebar() {
 
 function switchScreen(screen) {
   if (!screenAccess[screen]?.includes(currentUser?.roleKey)) {
-    showToast('⛔ Нет доступа');
+    showToast('⛔ Нет доступа', true);
     return;
   }
   currentScreen = screen;
@@ -369,7 +385,7 @@ function renderShiftStep() {
         }
       }
       if (!allSelected) {
-        showToast('Заполните все пункты чек-листа (фото для масла и ОЖ, статус для остальных)');
+        showToast('Заполните все пункты чек-листа (фото для масла и ОЖ, статус для остальных)', true);
         return;
       }
       const hasDefects = Object.entries(shiftData).some(([k, v]) => k.startsWith('status_') && v === 'дефект');
@@ -442,7 +458,7 @@ function shiftNext() {
     shiftData.fuel = +document.getElementById('shiftFuel').value;
     shiftData.bat = +document.getElementById('shiftBattery').value || 0;
     if (!shiftData.tech || !shiftData.h || !shiftData.fuel) {
-      showToast('Заполните обязательные поля: Техника, Моточасы, Топливо');
+      showToast('Заполните обязательные поля: Техника, Моточасы, Топливо', true);
       return;
     }
     shiftType = document.querySelector('input[name="shiftType"]:checked').value;
@@ -481,7 +497,11 @@ async function saveShiftFinal() {
       for (let [id, label] of Object.entries(checklistLabels)) {
         if (id === 'oil_motor' || id === 'oil_coolant') {
           const photoBase64 = shiftData[`photo_${id}`];
-          rec[label] = (photoBase64 && photoBase64.length > 10) ? await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`) : '';
+          if (photoBase64 && photoBase64.length > 10) {
+            rec[label] = await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`);
+          } else {
+            rec[label] = '';
+          }
         } else {
           const st = shiftData[`status_${id}`];
           rec[label] = st === 'дефект' ? 'Дефект' : 'В норме';
@@ -490,7 +510,7 @@ async function saveShiftFinal() {
     }
     await gasPost('append', 'Журнал смен', rec);
 
-    // Сохраняем дефекты последовательно с ожиданием
+    // Сохранение дефектов с ожиданием
     for (let def of defectsArray) {
       const defectId = Math.random().toString(36).substr(2, 8);
       let photoUrl = '';
@@ -511,8 +531,8 @@ async function saveShiftFinal() {
     defectsArray = [];
     await loadAllData();
   } catch (e) {
-    showToast('Ошибка сохранения: ' + e.message);
-    console.error(e);
+    showToast('Ошибка сохранения: ' + e.message, true);
+    console.error('Полная ошибка сохранения:', e);
   } finally {
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -542,7 +562,7 @@ function setupJournalFilters() {
       journalPeriod = 'custom';
       renderJournal();
     } else {
-      showToast('Выберите обе даты');
+      showToast('Выберите обе даты', true);
     }
   };
 }
