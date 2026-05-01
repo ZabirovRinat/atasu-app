@@ -201,16 +201,6 @@ body {
 .screen.active {
   display: block;
 }
-.stat-card {
-  background: var(--bg2);
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 16px;
-  display: inline-block;
-  width: calc(33% - 10px);
-  margin-right: 10px;
-  border: 1px solid var(--b);
-}
 .d-table-wrap {
   overflow-x: auto;
   background: var(--bg2);
@@ -222,8 +212,7 @@ table {
   width: 100%;
   border-collapse: collapse;
 }
-th,
-td {
+th, td {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid var(--b);
@@ -339,8 +328,7 @@ th {
   gap: 12px;
   padding: 16px;
 }
-.fp,
-.frow {
+.fp, .frow {
   padding: 8px 18px;
 }
 .fl {
@@ -351,9 +339,7 @@ th {
   display: block;
   margin-bottom: 6px;
 }
-.fi,
-.fs,
-.ft {
+.fi, .fs, .ft {
   width: 100%;
   padding: 10px 14px;
   background: var(--bg3);
@@ -446,9 +432,5 @@ th {
   }
   .mbn.active {
     color: var(--amb);
-  }
-  .stat-card {
-    width: 100%;
-    margin-right: 0;
   }
 }
