@@ -6,7 +6,6 @@ let journalPeriod = 'week', customFrom = null, customTo = null;
 let shiftStep = 1, shiftType = 'Прием смены', shiftData = {};
 let defectsArray = [];
 
-// ---------- ПРАВИЛЬНЫЙ СЛОВАРЬ (точное совпадение с колонками Google Sheets) ----------
 const checklistLabels = {
   oil_motor: 'Уровень моторного масла',
   oil_coolant: 'Уровень охлаждающей жидкости',
@@ -27,7 +26,6 @@ const checklistLabels = {
 };
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
-// gasGet с очисткой пробелов в заголовках колонок
 async function gasGet(sheet) {
   try {
     const url = `${GAS_URL}?sheet=${encodeURIComponent(sheet)}&t=${Date.now()}`;
@@ -46,32 +44,31 @@ async function gasGet(sheet) {
   } catch (e) { return []; }
 }
 
-// ИСПРАВЛЕННЫЕ gasPost и uploadPhoto (с явной передачей sheet)
 async function gasPost(action, sheet, data, key = null, extra = null) {
-  try {
-    const payload = { action, sheet, data };
-    if (key) payload.key = key;
-    if (extra) Object.assign(payload, extra);
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify(payload)
-    });
-    return true;
-  } catch (e) {
-    throw new Error('Network error: ' + e.message);
-  }
+  const payload = { action, sheet, data };
+  if (key) payload.key = key;
+  if (extra) Object.assign(payload, extra);
+  const response = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const result = await response.json();
+  if (!result.ok) throw new Error(result.error || 'Unknown error');
+  return result;
 }
 
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
-  try {
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({ action: 'upload_photo', sheet: 'Журнал смен', fileName, base64, folder })
-    });
-    return `/Photos/${folder}/${fileName}`;
-  } catch (e) { return ''; }
+  const response = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'upload_photo', sheet: 'Журнал смен', fileName, base64, folder })
+  });
+  if (!response.ok) throw new Error('HTTP ' + response.status);
+  const result = await response.json();
+  if (!result.ok) throw new Error(result.error || 'Upload failed');
+  return result.viewUrl || `/Photos/${folder}/${fileName}`;
 }
 
 function showToast(msg, isError = false) {
@@ -96,14 +93,14 @@ function formatDate(d, withTime = false) {
   return withTime ? date.toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : date.toISOString().slice(0,10);
 }
 
-// ИСПРАВЛЕННАЯ parsePhotoValue (полное кодирование пути)
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    const tn = val.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
-    const u = 'https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=' + encodeURIComponent(tn) + '&fileName=' + encodeURIComponent(val);
-    return `<a href="${u}" target="_blank">📷 Фото</a>`;
+    let cleanVal = val.replace(/\/+/g, '/');
+    const tn = cleanVal.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
+    const url = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${encodeURIComponent(cleanVal)}`;
+    return `<a href="${url}" target="_blank">📷 Фото</a>`;
   }
   return val;
 }
@@ -465,7 +462,11 @@ async function saveShiftFinal() {
       for (let [id, label] of Object.entries(checklistLabels)) {
         if (id === 'oil_motor' || id === 'oil_coolant') {
           const photoBase64 = shiftData[`photo_${id}`];
-          rec[label] = (photoBase64 && photoBase64.length > 10) ? await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`) : '';
+          if (photoBase64 && photoBase64.length > 10) {
+            rec[label] = await uploadPhoto(photoBase64, `shift_${rec.ID_Записи}_${id}.jpg`);
+          } else {
+            rec[label] = '';
+          }
         } else {
           const st = shiftData[`status_${id}`];
           rec[label] = st === 'дефект' ? 'Дефект' : 'В норме';
