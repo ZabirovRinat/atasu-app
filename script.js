@@ -1,6 +1,5 @@
 // ==================== КОНФИГУРАЦИЯ ====================
-const GAS_URL = 'https://script.google.com/macros/s/ВАШ_НОВЫЙ_URL/exec';
-
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbythcwykMRWz0fYW2hz7CXt6iTGo-BSMlfrgISJx8lde4rTmvhDnlDuU0avO72BYHRX/exec';
 let TECH = [], JOURNAL = [], OPERATORS = [];
 let currentUser = null, currentScreen = 'journal';
 let journalPeriod = 'week', customFrom = null, customTo = null;
