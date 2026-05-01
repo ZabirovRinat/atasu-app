@@ -1,12 +1,12 @@
 // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwm8GaCXIYhqQuLkpCSRK1Gq6t4rAldAae6OMJz9VEWr0vNKws4zBQ_C9B6KRJYbMGmOQ/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbythcwykMRWz0fYW2hz7CXt6iTGo-BSMlfrgISJx8lde4rTmvhDnlDuU0avO72BYHRX/exec';
 let TECH = [], JOURNAL = [], GSM_RAW = [], OPERATORS = [], REPAIRS = [], STOCK = [], DEFECTS = [];
 let currentUser = null, currentScreen = 'journal';
 let journalPeriod = 'week', customFrom = null, customTo = null;
 let shiftStep = 1, shiftType = 'Прием смены', shiftData = {};
 let defectsArray = [];
 
-// ---------- ПРАВИЛЬНЫЙ СЛОВАРЬ (точное совпадение с колонками Google Sheets) ----------
+// ТОЧНЫЕ НАЗВАНИЯ КОЛОНОК (как в Google Sheets)
 const checklistLabels = {
   oil_motor: 'Уровень моторного масла',
   oil_coolant: 'Уровень охлаждающей жидкости',
@@ -45,7 +45,6 @@ async function gasGet(sheet) {
   } catch (e) { return []; }
 }
 
-// gasPost с правильным fetch (без лишних заголовков, но с получением ответа)
 async function gasPost(action, sheet, data, key = null, extra = null) {
   const payload = { action, sheet, data };
   if (key) payload.key = key;
@@ -61,7 +60,6 @@ async function gasPost(action, sheet, data, key = null, extra = null) {
   return result;
 }
 
-// uploadPhoto с явной передачей sheet и корректной обработкой ответа
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
   const response = await fetch(GAS_URL, {
     method: 'POST',
@@ -102,12 +100,11 @@ function formatDate(d, withTime = false) {
   return withTime ? date.toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : date.toISOString().slice(0,10);
 }
 
-// ФИНАЛЬНАЯ parsePhotoValue — старые фото дефектов работают
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    const cleanVal = val.replace(/\/+/g, '/'); // убираем двойные слеши
+    let cleanVal = val.replace(/\/+/g, '/');
     const tn = cleanVal.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
     const url = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${encodeURIComponent(cleanVal)}`;
     return `<a href="${url}" target="_blank">📷 Фото</a>`;
@@ -164,7 +161,7 @@ function renderJournal() {
     return `<tr class="clickable-row" onclick="openJournalCard('${j.ID_Записи}')">
       <td>${formatDate(j.Дата, true)}</td>
       <td>${j.ID_Техники || ''}</td>
-      <td>${j.Оператор || ''}<tr>
+      <td>${j.Оператор || ''}</td>
       <td>${j["Смена (День/Ночь)"] || j.Смена || ''}</td>
       <td>${j.Моточасы || 0}</td>
       <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
