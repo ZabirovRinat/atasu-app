@@ -4,7 +4,6 @@
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
-
 body {
   background: #F8FAFC;
   font-family: 'Inter', system-ui, sans-serif;
@@ -12,7 +11,6 @@ body {
   overflow: hidden;
   color: #1E293B;
 }
-
 :root {
   --bg: #F8FAFC;
   --bg2: #FFFFFF;
@@ -27,7 +25,6 @@ body {
   --b: rgba(0, 0, 0, 0.08);
   --sidebar: 260px;
 }
-
 #atasu-app {
   position: fixed;
   top: 0;
@@ -39,14 +36,12 @@ body {
   overflow: hidden;
   display: flex;
 }
-
 #shell {
   display: flex;
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
-
 #sidebar {
   width: var(--sidebar);
   flex-shrink: 0;
@@ -56,7 +51,6 @@ body {
   flex-direction: column;
   z-index: 100;
 }
-
 .sb-logo {
   padding: 20px;
   border-bottom: 1px solid var(--b);
@@ -64,7 +58,6 @@ body {
   align-items: center;
   gap: 12px;
 }
-
 .sb-lmark {
   width: 38px;
   height: 38px;
@@ -76,26 +69,22 @@ body {
   font-size: 20px;
   color: white;
 }
-
 .sb-ltxt {
   font-weight: 800;
   font-size: 18px;
   color: var(--tx);
 }
-
 .sb-lsub {
   font-size: 9px;
   color: var(--amb);
   letter-spacing: 2px;
   margin-top: -2px;
 }
-
 .sb-nav {
   flex: 1;
   padding: 16px 0;
   overflow-y: auto;
 }
-
 .sb-item {
   display: flex;
   align-items: center;
@@ -109,30 +98,25 @@ body {
   color: var(--tx2);
   transition: all 0.15s;
 }
-
 .sb-item:hover {
   background: #F1F5F9;
   color: var(--tx);
 }
-
 .sb-item.on {
   background: #FFF7ED;
   color: var(--amb);
   font-weight: 600;
   border-left: 3px solid var(--amb);
 }
-
 .sb-ic {
   font-size: 18px;
   width: 24px;
   text-align: center;
 }
-
 .sb-footer {
   padding: 16px;
   border-top: 1px solid var(--b);
 }
-
 .sb-user {
   display: flex;
   align-items: center;
@@ -143,7 +127,6 @@ body {
   border: 1px solid var(--b);
   cursor: pointer;
 }
-
 .sb-avatar {
   width: 36px;
   height: 36px;
@@ -155,7 +138,6 @@ body {
   font-weight: bold;
   color: white;
 }
-
 .logout-btn {
   margin-left: auto;
   background: none;
@@ -164,14 +146,12 @@ body {
   cursor: pointer;
   font-size: 16px;
 }
-
 #main {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-
 #topbar {
   padding: 12px 24px;
   background: #FFFFFF;
@@ -182,13 +162,11 @@ body {
   flex-wrap: wrap;
   gap: 10px;
 }
-
 .tb-title {
   font-family: 'Montserrat', monospace;
   font-size: 20px;
   font-weight: 700;
 }
-
 .btn {
   background: var(--ag);
   border: none;
@@ -199,37 +177,30 @@ body {
   cursor: pointer;
   transition: opacity 0.2s;
 }
-
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
-
 .btn-outline {
   background: transparent;
   border: 1px solid var(--amb);
   color: var(--amb);
 }
-
 .btn.small {
   padding: 4px 12px;
   font-size: 12px;
 }
-
 #content {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
 }
-
 .screen {
   display: none;
 }
-
 .screen.active {
   display: block;
 }
-
 .stat-card {
   background: var(--bg2);
   border-radius: 16px;
@@ -240,7 +211,6 @@ body {
   margin-right: 10px;
   border: 1px solid var(--b);
 }
-
 .d-table-wrap {
   overflow-x: auto;
   background: var(--bg2);
@@ -248,24 +218,20 @@ body {
   margin-top: 16px;
   border: 1px solid var(--b);
 }
-
 table {
   width: 100%;
   border-collapse: collapse;
 }
-
 th,
 td {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid var(--b);
 }
-
 th {
   background: var(--bg3);
   cursor: pointer;
 }
-
 .badge {
   display: inline-block;
   padding: 4px 10px;
@@ -273,17 +239,14 @@ th {
   font-size: 10px;
   font-weight: bold;
 }
-
 .badge-ok {
   background: #DCFCE7;
   color: #059669;
 }
-
 .badge-warn {
   background: #FEE2E2;
   color: #dc2626;
 }
-
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -295,7 +258,6 @@ th {
   border: 1px solid var(--b);
   align-items: center;
 }
-
 .filter-group {
   display: flex;
   gap: 4px;
@@ -303,7 +265,6 @@ th {
   border-radius: 40px;
   padding: 4px;
 }
-
 .filter-btn {
   background: transparent;
   border: none;
@@ -312,12 +273,10 @@ th {
   cursor: pointer;
   color: var(--tx2);
 }
-
 .filter-btn.active {
   background: var(--amb);
   color: white;
 }
-
 .period-input {
   background: var(--bg3);
   border: 1px solid var(--b);
@@ -325,15 +284,12 @@ th {
   border-radius: 20px;
   font-size: 12px;
 }
-
 .clickable-row {
   cursor: pointer;
 }
-
 .clickable-row:hover {
   background: #F8FAFC;
 }
-
 .overlay {
   position: fixed;
   inset: 0;
@@ -345,12 +301,10 @@ th {
   pointer-events: none;
   transition: background 0.2s;
 }
-
 .overlay.open {
   background: rgba(0, 0, 0, 0.5);
   pointer-events: all;
 }
-
 .drawer {
   width: 100%;
   max-width: 520px;
@@ -361,11 +315,9 @@ th {
   transform: translateY(100%);
   transition: transform 0.3s;
 }
-
 .overlay.open .drawer {
   transform: translateY(0);
 }
-
 .drtitle {
   padding: 18px;
   font-size: 18px;
@@ -375,7 +327,6 @@ th {
   justify-content: space-between;
   align-items: center;
 }
-
 .close-modal {
   background: none;
   border: none;
@@ -383,18 +334,15 @@ th {
   cursor: pointer;
   color: var(--tx2);
 }
-
 .modal-buttons {
   display: flex;
   gap: 12px;
   padding: 16px;
 }
-
 .fp,
 .frow {
   padding: 8px 18px;
 }
-
 .fl {
   font-size: 11px;
   font-weight: 700;
@@ -403,7 +351,6 @@ th {
   display: block;
   margin-bottom: 6px;
 }
-
 .fi,
 .fs,
 .ft {
@@ -414,12 +361,10 @@ th {
   border-radius: 12px;
   font-size: 14px;
 }
-
 .btn-full {
   width: 100%;
   margin-top: 8px;
 }
-
 .toast {
   position: fixed;
   bottom: 20px;
@@ -434,11 +379,9 @@ th {
   transition: opacity 0.2s;
   pointer-events: none;
 }
-
 .toast.show {
   opacity: 1;
 }
-
 #loginOverlay {
   position: fixed;
   top: 0;
@@ -451,7 +394,6 @@ th {
   align-items: center;
   justify-content: center;
 }
-
 .login-card {
   background: var(--bg2);
   width: 340px;
@@ -460,7 +402,6 @@ th {
   text-align: center;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
 }
-
 .login-card input {
   width: 100%;
   padding: 12px;
@@ -469,15 +410,12 @@ th {
   border: 1px solid var(--b);
   border-radius: 16px;
 }
-
 .hidden {
   display: none !important;
 }
-
 #mobile-bnav {
   display: none;
 }
-
 @media (max-width: 768px) {
   #sidebar {
     display: none;
