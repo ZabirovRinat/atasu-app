@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const GAS_SCRIPT_URL = 'https://script.google.com/macros/s/ВАШ_НОВЫЙ_URL/exec'; // <-- подставьте актуальный
+  const GAS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLkCN3Be44mret-cZj_niMpiv-MgOJ6JawP3qUeHcpPP71zF1oe2WjTmvDOTfnEQkMsg/exec'; 
 
   try {
     const url = new URL(GAS_SCRIPT_URL);
