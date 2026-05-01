@@ -62,14 +62,20 @@ async function gasPost(action, sheet, data, key = null, extra = null) {
   return json;
 }
 
-async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
+async function uploadPhoto(base64, fileName, folder) {
   if (!base64 || base64.length < 10) return '';
-  const res = await gasPost('upload_photo', 'Журнал смен', null, null, {
-    fileName,
-    base64,
-    folder
-  });
-  return res.url || '';
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'upload_photo', folder, base64, fileName })
+    });
+    const result = await res.json();
+    return result.url || '';
+  } catch (e) {
+    console.error('uploadPhoto error', e);
+    return '';
+  }
 }
 
 function showToast(msg, isError = false) {
