@@ -6,6 +6,7 @@ let journalPeriod = 'week', customFrom = null, customTo = null;
 let shiftStep = 1, shiftType = 'Прием смены', shiftData = {};
 let defectsArray = [];
 
+// ПРАВИЛЬНЫЕ названия колонок (как в Google Sheets)
 const checklistLabels = {
   oil_motor: 'Уровень моторного масла',
   oil_coolant: 'Уровень охлаждающей жидкости',
@@ -14,18 +15,18 @@ const checklistLabels = {
   brakes: 'Состояние тормозов',
   hydro: 'Уровень гидравлического масла',
   hoses: 'Состояние шлангов гидросистемы',
-  steering: 'Тяга рулевого управления',
+  steering: 'Состояние тяги рулевого управления',
   cabin: 'Состояние кабины оператора',
-  glass: 'Стёкла кабины',
-  mirrors: 'Зеркала заднего вида',
-  signal_rev: 'Сигнал заднего хода',
-  signal_alarm: 'Аварийные сигнализации',
-  beacon: 'Проблесковый маячок',
-  visual: 'Визуальный осмотр',
-  fire_ext: 'Огнетушитель/Аптечка'
+  glass: 'Состояние стекол кабины',
+  mirrors: 'Состояние зеркал заднего вида',
+  signal_rev: 'Исправность звукового сигнала заднего хода',
+  signal_alarm: 'Исправность аварийной сигнализации',
+  beacon: 'Исправность проблескового маячка',
+  visual: 'Визуальный осмотр (наличие повреждений, утечек)',
+  fire_ext: 'Наличие огнетушителя и аптечки'
 };
 
-// ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
 async function gasGet(sheet) {
   try {
     const url = `${GAS_URL}?sheet=${encodeURIComponent(sheet)}&t=${Date.now()}`;
@@ -35,55 +36,52 @@ async function gasGet(sheet) {
   } catch (e) { return []; }
 }
 
-// Исправленный gasPost – без no-cors, с обработкой ответа и пробросом ошибки
+// ПРАВИЛЬНЫЙ POST с режимом 'no-cors' (без ожидания ответа)
 async function gasPost(action, sheet, data, key = null, extra = null) {
-  const payload = { action, sheet, data };
-  if (key) payload.key = key;
-  if (extra) Object.assign(payload, extra);
-  const response = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json();
-  if (!result.ok) {
-    throw new Error(result.error || 'Неизвестная ошибка сервера');
+  try {
+    const payload = { action, sheet, data };
+    if (key) payload.key = key;
+    if (extra) Object.assign(payload, extra);
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    return true;
+  } catch (e) {
+    throw new Error('Network error: ' + e.message);
   }
-  return true;
 }
 
-// Исправленная uploadPhoto – без no-cors, с обработкой ответа
+// Загрузка фото с правильными заголовками
 async function uploadPhoto(base64, fileName, folder = 'Журнал_смен_Images') {
-  const payload = {
-    action: 'upload_photo',
-    sheet: 'Журнал смен',      // важно для правильной работы GAS
-    fileName: fileName,
-    base64: base64,
-    folder: folder
-  };
-  const response = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const result = await response.json();
-  if (!result.ok) {
-    throw new Error(result.error || 'Ошибка загрузки фото');
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'upload_photo',
+        sheet: 'Журнал смен',
+        fileName: fileName,
+        base64: base64,
+        folder: folder
+      })
+    });
+    return `/Photos/${folder}/${fileName}`;
+  } catch (e) {
+    console.error(e);
+    return '';
   }
-  // Ожидаем, что сервер вернёт path или viewUrl
-  return result.viewUrl || result.path || `/Photos/${folder}/${fileName}`;
 }
 
 function showToast(msg, isError = false) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  if (isError) t.style.background = '#dc2626';
-  else t.style.background = '#1e293b';
-  setTimeout(() => {
-    t.classList.remove('show');
-    t.style.background = '#1e293b';
-  }, 4000);
+  t.style.background = isError ? '#dc2626' : '#1e293b';
+  setTimeout(() => t.classList.remove('show'), 4000);
 }
 
 function getNowFormatted() {
@@ -105,17 +103,15 @@ function formatDate(d, withTime = false) {
     : date.toISOString().slice(0, 10);
 }
 
-// ИСПРАВЛЕННАЯ parsePhotoValue – чистит двойные слеши и регистр
+// Исправленная функция показа фото – чистит двойные слеши, кодирует путь
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    // Определяем таблицу: по наличию 'defects' без учёта регистра
     const tn = val.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
-    // Заменяем двойные и более слеши на одинарные
-    const cleanVal = val.replace(/\/+/g, '/');
-    const url = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${cleanVal}`;
-    return `<a href="${url}" target="_blank">📷 Фото</a>`;
+    const cleanVal = val.replace(/\/\//g, '/'); // убираем двойные слеши
+    const u = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${encodeURIComponent(cleanVal)}`;
+    return `<a href="${u}" target="_blank">📷 Фото</a>`;
   }
   return val;
 }
@@ -139,44 +135,28 @@ function getDateRange() {
   const now = new Date();
   let from, to = new Date();
   if (journalPeriod === 'week') {
-    const day = now.getDay();
-    const diff = day === 0 ? 6 : day - 1;
-    from = new Date(now);
-    from.setDate(now.getDate() - diff);
-    from.setHours(0, 0, 0, 0);
-    to = new Date(from);
-    to.setDate(from.getDate() + 6);
-    to.setHours(23, 59, 59, 999);
+    const day = now.getDay(), diff = day === 0 ? 6 : day - 1;
+    from = new Date(now); from.setDate(now.getDate() - diff); from.setHours(0,0,0,0);
+    to = new Date(from); to.setDate(from.getDate() + 6); to.setHours(23,59,59,999);
   } else if (journalPeriod === 'prevWeek') {
-    const day = now.getDay();
-    const diff = day === 0 ? 6 : day - 1;
-    from = new Date(now);
-    from.setDate(now.getDate() - diff - 7);
-    from.setHours(0, 0, 0, 0);
-    to = new Date(from);
-    to.setDate(from.getDate() + 6);
-    to.setHours(23, 59, 59, 999);
+    const day = now.getDay(), diff = day === 0 ? 6 : day - 1;
+    from = new Date(now); from.setDate(now.getDate() - diff - 7); from.setHours(0,0,0,0);
+    to = new Date(from); to.setDate(from.getDate() + 6); to.setHours(23,59,59,999);
   } else if (journalPeriod === 'month') {
     from = new Date(now.getFullYear(), now.getMonth(), 1);
-    to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23,59,59,999);
   } else if (journalPeriod === 'custom' && customFrom && customTo) {
-    from = new Date(customFrom);
-    from.setHours(0, 0, 0, 0);
-    to = new Date(customTo);
-    to.setHours(23, 59, 59, 999);
+    from = new Date(customFrom); from.setHours(0,0,0,0);
+    to = new Date(customTo); to.setHours(23,59,59,999);
   } else {
-    from = new Date(0);
-    to = new Date();
+    from = new Date(0); to = new Date();
   }
   return { from, to };
 }
 
 function renderJournal() {
   const { from, to } = getDateRange();
-  const filtered = JOURNAL.filter(j => {
-    let d = new Date(j.Дата);
-    return d >= from && d <= to;
-  });
+  const filtered = JOURNAL.filter(j => { let d = new Date(j.Дата); return d >= from && d <= to; });
   document.getElementById('journalBody').innerHTML = filtered.map(j => {
     const hasDefect = DEFECTS.some(d => d.ID_Смены === j.ID_Записи);
     return `<tr class="clickable-row" onclick="openJournalCard('${j.ID_Записи}')">
@@ -188,7 +168,7 @@ function renderJournal() {
       <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
       <td>${j.Аккамуляторная_батарея || ''}</td>
       <td>${hasDefect ? '🔺 Дефекты' : ''}</td>
-     </tr>`;
+    </td>`;
   }).join('');
 }
 
@@ -235,20 +215,20 @@ window.closeJournalCard = () => document.getElementById('journalCardModal').clas
 
 // ==================== НАВИГАЦИЯ ====================
 const screenAccess = {
-  journal: ['admin', 'manager', 'coordinator', 'mechanic', 'slesar', 'operator'],
-  tech: ['admin', 'manager', 'coordinator', 'mechanic', 'slesar'],
-  gsm: ['admin', 'manager', 'coordinator', 'mechanic'],
-  repair: ['admin', 'manager', 'coordinator', 'slesar'],
-  stock: ['admin', 'manager', 'coordinator', 'mechanic', 'slesar']
+  journal: ['admin','manager','coordinator','mechanic','slesar','operator'],
+  tech: ['admin','manager','coordinator','mechanic','slesar'],
+  gsm: ['admin','manager','coordinator','mechanic'],
+  repair: ['admin','manager','coordinator','slesar'],
+  stock: ['admin','manager','coordinator','mechanic','slesar']
 };
 
 function buildSidebar() {
   const items = [
-    { id: 'journal', icon: '📋', label: 'Журнал смен' },
-    { id: 'tech', icon: '🚜', label: 'Техника' },
-    { id: 'gsm', icon: '⛽', label: 'ГСМ' },
-    { id: 'repair', icon: '🔧', label: 'Ремонты' },
-    { id: 'stock', icon: '📦', label: 'Склад' }
+    { id:'journal', icon:'📋', label:'Журнал смен' },
+    { id:'tech', icon:'🚜', label:'Техника' },
+    { id:'gsm', icon:'⛽', label:'ГСМ' },
+    { id:'repair', icon:'🔧', label:'Ремонты' },
+    { id:'stock', icon:'📦', label:'Склад' }
   ];
   const role = currentUser?.roleKey || 'guest';
   const visible = items.filter(it => screenAccess[it.id]?.includes(role));
@@ -311,15 +291,11 @@ window.setCheckStatus = function (itemId, status) {
   const okBtn = document.getElementById(`ok_${itemId}`);
   const badBtn = document.getElementById(`bad_${itemId}`);
   if (status === 'норме') {
-    okBtn.style.background = '#10b981';
-    okBtn.style.color = '#fff';
-    badBtn.style.background = '#fff';
-    badBtn.style.color = '#ef4444';
+    okBtn.style.background = '#10b981'; okBtn.style.color = '#fff';
+    badBtn.style.background = '#fff'; badBtn.style.color = '#ef4444';
   } else {
-    badBtn.style.background = '#ef4444';
-    badBtn.style.color = '#fff';
-    okBtn.style.background = '#fff';
-    okBtn.style.color = '#10b981';
+    badBtn.style.background = '#ef4444'; badBtn.style.color = '#fff';
+    okBtn.style.background = '#fff'; okBtn.style.color = '#10b981';
   }
   shiftData[`status_${itemId}`] = status;
 };
@@ -335,7 +311,7 @@ function renderShiftStep() {
       .map(t => `<option value="${t.ID_Техники}">${t.ID_Техники}</option>`).join('');
     container.innerHTML = `
       <div class="fp"><label class="fl">Тип записи</label>
-        <div><label><input type="radio" name="shiftType" value="Прием смены" ${shiftType === 'Прием смены' ? 'checked' : ''} onchange="updateShiftType(this.value)"> Прием</label>
+        <div><label><input type="radio" name="shiftType" value="Прием смены" ${shiftType==='Прием смены'?'checked':''} onchange="updateShiftType(this.value)"> Прием</label>
         <label style="margin-left:16px;"><input type="radio" name="shiftType" value="Сдача смены" onchange="updateShiftType(this.value)"> Сдача</label></div></div>
       <div class="fp"><label class="fl">Техника</label><select id="shiftTech" class="fs">${techOptions}</select></div>
       <div class="fp"><label class="fl">Смена</label><select id="shiftShift" class="fs"><option>День</option><option>Ночь</option></select></div>
@@ -388,7 +364,7 @@ function renderShiftStep() {
         showToast('Заполните все пункты чек-листа (фото для масла и ОЖ, статус для остальных)', true);
         return;
       }
-      const hasDefects = Object.entries(shiftData).some(([k, v]) => k.startsWith('status_') && v === 'дефект');
+      const hasDefects = Object.entries(shiftData).some(([k,v]) => k.startsWith('status_') && v === 'дефект');
       if (hasDefects) {
         shiftStep = 3;
         renderShiftStep();
@@ -510,7 +486,6 @@ async function saveShiftFinal() {
     }
     await gasPost('append', 'Журнал смен', rec);
 
-    // Сохранение дефектов с ожиданием
     for (let def of defectsArray) {
       const defectId = Math.random().toString(36).substr(2, 8);
       let photoUrl = '';
