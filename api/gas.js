@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const GAS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQluQxEYnKJ0i6aLiZJ93VzEoyDsj8GYUdH_Jmjg9NIlDuFAoQaLQljH1lZQoRasaRvA/exec';
+  const GAS_SCRIPT_URL = 'https://script.google.com/macros/s/ВАШ_НОВЫЙ_URL/exec'; // <-- подставьте актуальный
 
   try {
     const url = new URL(GAS_SCRIPT_URL);
@@ -15,13 +15,11 @@ export default async function handler(req, res) {
         url.searchParams.set(key, value);
       }
     }
-
     const response = await fetch(url.toString(), {
       method: req.method,
       headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
       body: req.method === 'POST' ? JSON.stringify(req.body) : undefined,
     });
-
     const data = await response.text();
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(response.status).send(data);
