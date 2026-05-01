@@ -6,6 +6,7 @@ let journalPeriod = 'week', customFrom = null, customTo = null;
 let shiftStep = 1, shiftType = 'Прием смены', shiftData = {};
 let defectsArray = [];
 
+// ---------- ПРАВИЛЬНЫЙ СЛОВАРЬ (точное совпадение с колонками Google Sheets) ----------
 const checklistLabels = {
   oil_motor: 'Уровень моторного масла',
   oil_coolant: 'Уровень охлаждающей жидкости',
@@ -26,12 +27,22 @@ const checklistLabels = {
 };
 
 // ==================== ВСПОМОГАТЕЛЬНЫЕ ====================
+// gasGet с очисткой пробелов в заголовках колонок
 async function gasGet(sheet) {
   try {
     const url = `${GAS_URL}?sheet=${encodeURIComponent(sheet)}&t=${Date.now()}`;
     const res = await fetch(url);
     const json = await res.json();
-    return json.ok ? json.rows : [];
+    if (json.ok && json.rows) {
+      return json.rows.map(row => {
+        const cleanRow = {};
+        for (let key in row) {
+          cleanRow[key.trim()] = row[key];
+        }
+        return cleanRow;
+      });
+    }
+    return [];
   } catch (e) { return []; }
 }
 
@@ -79,13 +90,14 @@ function formatDate(d, withTime = false) {
   return withTime ? date.toLocaleString('ru', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : date.toISOString().slice(0,10);
 }
 
+// ---------- ИСПРАВЛЕННАЯ ФУНКЦИЯ ДЛЯ ФОТО (с encodeURI вместо encodeURIComponent) ----------
 function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
     const tn = val.toLowerCase().includes('defects') ? 'Дефекты' : 'Журнал смен';
-    const cleanVal = val.replace(/\/\//g, '/');
-    const u = `https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=${encodeURIComponent(tn)}&fileName=${encodeURI(cleanVal)}`;
+    const cleanVal = val.replace(/\/\//g, '/'); // убираем двойные слеши
+    const u = 'https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-100235370138&tableName=' + encodeURIComponent(tn) + '&fileName=' + encodeURI(cleanVal);
     return `<a href="${u}" target="_blank">📷 Фото</a>`;
   }
   return val;
@@ -143,7 +155,7 @@ function renderJournal() {
       <td>${j["Уровень топлива (л)"] || j.Топливо || 0}</td>
       <td>${j.Аккамуляторная_батарея || ''}</td>
       <td>${hasDefect ? '🔺 Дефекты' : ''}</td>
-    </tr>`;
+     </tr>`;
   }).join('');
 }
 
@@ -243,7 +255,6 @@ function openShiftForm() {
   renderShiftStep();
   document.getElementById('shiftModal').classList.add('open');
 }
-
 function closeShiftModal() {
   document.getElementById('shiftModal').classList.remove('open');
 }
@@ -294,6 +305,7 @@ function renderShiftStep() {
     backBtn.style.display = 'none'; nextBtn.style.display = 'flex'; saveBtn.style.display = 'none';
   } else if (shiftStep === 2 && shiftType === 'Сдача смены') {
     saveShiftFinal();
+    return;
   } else if (shiftStep === 2 && shiftType === 'Прием смены') {
     let html = '<div style="max-height:55vh; overflow-y:auto; padding:0 18px;"><div style="font-size:12px; color:var(--tx3); margin-bottom:10px;">Проверьте все пункты (обязательно)</div>';
     for (let [id, label] of Object.entries(checklistLabels)) {
@@ -402,7 +414,6 @@ function shiftNext() {
     renderShiftStep();
   }
 }
-
 function shiftBack() { if (shiftStep > 1) shiftStep--; renderShiftStep(); }
 
 async function saveShiftFinal() {
