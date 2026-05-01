@@ -96,8 +96,8 @@ function parsePhotoValue(val) {
   if (!val || typeof val !== 'string') return '';
   if (val.includes('drive.google.com')) return `<a href="${val}" target="_blank">📷 Фото</a>`;
   if (val.startsWith('/Photos/')) {
-    // Новый правильный appName
-    return `<a href="https://www.appsheet.com/template/gettablefileurl?appName=НОВЫЙ_APP_NAME&tableName=${encodeURIComponent('Журнал смен')}&fileName=${encodeURIComponent(val)}" target="_blank">📷 Фото (AppSheet)</a>`;
+    // Используем актуальный appName из вашего AppSheet
+    return `<a href="https://www.appsheet.com/template/gettablefileurl?appName=ReachStacker_Logbook-459302909&tableName=${encodeURIComponent('Журнал смен')}&fileName=${encodeURIComponent(val)}" target="_blank">📷 Фото (AppSheet)</a>`;
   }
   return val;
 }
